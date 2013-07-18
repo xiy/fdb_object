@@ -10,8 +10,10 @@ Gem::Specification.new do |gem|
   gem.version       = FDBObject::GEM_VERSION
   gem.authors       = ["Peter Edge"]
   gem.email         = ["peter@centzy.com"]
-  gem.summary       = %{FoundationDB Object Layer for Ruby}
+  gem.summary       = %{FoundationDB Object Layer}
+  gem.description   = %{FoundationDB Object Layer for Ruby}
   gem.homepage      = "https://github.com/centzy/fdb_object"
+  gem.license       = "MIT"
 
   gem.files         = `git ls-files`.split($/)
   #gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
@@ -21,9 +23,9 @@ Gem::Specification.new do |gem|
   gem.add_dependency "fdb"
   gem.add_dependency "multi_json"
   if RUBY_PLATFORM =~ /java/
-    gem.add_dependency 'msgpack-jruby'
+    gem.add_dependency "msgpack-jruby"
   else
-    gem.add_dependency 'msgpack'
+    gem.add_dependency "msgpack"
   end
 
   #gem.add_development_dependency "rspec"
