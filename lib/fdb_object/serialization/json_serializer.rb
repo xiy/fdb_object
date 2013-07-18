@@ -14,7 +14,7 @@ module FDBObject
       MultiJson.dump(object)
     end
 
-    def deserialize(object, object_class)
+    def deserialize(string, object_class)
       MultiJson.load(object)
     end
 

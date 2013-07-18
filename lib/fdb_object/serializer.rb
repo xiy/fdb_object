@@ -14,7 +14,7 @@ module FDBObject
       raise NotImplementedError.new
     end
 
-    def deserialize(object, object_class)
+    def deserialize(string, object_class)
       raise NotImplementedError.new
     end
 

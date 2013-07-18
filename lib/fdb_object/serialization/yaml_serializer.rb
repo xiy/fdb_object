@@ -14,7 +14,7 @@ module FDBObject
       YAML.dump(object)
     end
 
-    def deserialize(object, object_class)
+    def deserialize(string, object_class)
       YAML.load(object)
     end
 

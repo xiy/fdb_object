@@ -14,7 +14,7 @@ module FDBObject
       MessagePack.pack(object)
     end
 
-    def deserialize(object, object_class)
+    def deserialize(string, object_class)
       MessagePack.unpack(object)
     end
 
