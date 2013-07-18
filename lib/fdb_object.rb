@@ -20,7 +20,13 @@ require 'fdb_object/version'
 
 module FDBObject
   
-  FDB.api_version(22)
+  def self.db(api_version = 22)
+    unless @db
+      FDB.api_version(api_version)
+      @db = FDB.open
+    end
+    @db
+  end
 
   class FDBObjectError < StandardError
       

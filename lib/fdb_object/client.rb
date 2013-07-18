@@ -15,24 +15,23 @@ module FDBObject
       @namespace = namespace
       @serializer = serializer
       @postfix_provider = PostfixProvider.new(max_postfix_size)
-      @db = ::FDB.open
       @logger = Logger.new(STDOUT)
       @logger.level = log_level
     end
 
-    def get(key, object_class)
+    def get(db_or_tr, key, object_class)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless key && !key.empty?
       raise ArgumentError.new unless object_class
 
       object_key = object_key(object_class, key)
-      values = values(transact { |tr| get_in_transaction(object_key, tr) })
+      values = values(db_or_tr.transact { |tr| get_in_transaction(tr, object_key) })
       !values ? nil : deserialize_sub_serialized_objects(object_class, values)
     end
 
     # TODO(pedge): if keys are close lexographically, can we use ranges?
     # TODO(pedge): merge get into a get_many call? uses more memory
-    def get_many(keys, object_class)
+    def get_many(db_or_tr, keys, object_class)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless keys
       keys.each { |key| raise ArgumentError.new unless key && !key.empty? }
@@ -48,9 +47,9 @@ module FDBObject
       end
 
       # map key to sub_serialized_objects
-      transact do |tr|
+      db_or_tr.transact do |tr|
         keys.each do |key|
-          values = values(get_in_transaction(key_hash[key], tr))
+          values = values(get_in_transaction(tr, key_hash[key]))
           if values
             key_hash[key] = values
           else
@@ -67,16 +66,16 @@ module FDBObject
       key_hash
     end
 
-    def set(key, object)
+    def set(db_or_tr, key, object)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless key
       raise ArgumentError.new unless object
 
       object_index_key = object_index_key(object.class, key)
       key_to_sub_serialized_object = key_to_sub_serialized_object(key, object)
-      transact do |tr|
-        set_in_transaction(object_index_key, key, tr)
-        set_many_in_transaction(key_to_sub_serialized_object, tr)
+      db_or_tr.transact do |tr|
+        set_in_transaction(tr, object_index_key, key)
+        set_many_in_transaction(tr, key_to_sub_serialized_object)
       end
       object
     end
@@ -84,7 +83,7 @@ module FDBObject
     # TODO(pedge): note that this has a total limit of 10MB but errors are only thrown
     # if an individual object is >10MB
     # TODO(pedge): merge set into a set_many call? uses more memory
-    def set_many(key_to_object)
+    def set_many(db_to_tr, key_to_object)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless key_to_object
       key_to_object.each do |key, object|
@@ -101,29 +100,29 @@ module FDBObject
         hash.merge!(key_to_sub_serialized_object(key, object))
         hash
       end
-      transact do |tr|
-        set_many_in_transaction(object_index_key_to_key, tr)
-        set_many_in_transaction(key_to_sub_serialized_object, tr)
+      db_or_tr.transact do |tr|
+        set_many_in_transaction(tr, object_index_key_to_key)
+        set_many_in_transaction(tr, key_to_sub_serialized_object)
       end
       key_to_object.values
     end
 
-    def delete(key, object_class)
+    def delete(db_or_tr, key, object_class)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless key
       raise ArgumentError.new unless object_class
 
       object_index_key = object_index_key(object_class, key)
       object_key = object_key(object_class, key)
-      transact do |tr|
-        delete_in_transaction(object_index_key, tr)
-        delete_in_transaction(object_key, tr)
+      db_or_tr.transact do |tr|
+        delete_in_transaction(tr, object_index_key)
+        delete_in_transaction(tr, object_key)
       end
       nil
     end
 
     # TODO(pedge): merge delete into a delete_many call? uses more memory
-    def delete_many(keys, object_class)
+    def delete_many(db_or_tr, keys, object_class)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless keys
       keys.each { |key| raise ArgumentError.new unless key && !key.empty? }
@@ -134,18 +133,18 @@ module FDBObject
 
       object_index_keys = keys.map { |key| object_index_key(object_class, key) }
       object_keys = keys.map { |key| object_key(object_class, key) }
-      transact do |tr|
-        delete_many_in_transaction(object_index_keys, tr)
+      db_or_tr.transact do |tr|
+        delete_many_in_transaction(tr, object_index_keys)
         delete_many_in_trsnaction(object_keys, tr)
       end
     end
 
-    def get_all_keys(object_class)
+    def get_all_keys(db_or_tr, object_class)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless object_class
 
       object_index_key = object_index_key(object_class)
-      values(transact { |tr| get_in_transaction(object_index_key, tr) })
+      values(db_or_tr.transact { |tr| get_in_transaction(tr, object_index_key) })
     end
 
     private
@@ -159,36 +158,30 @@ module FDBObject
     # TODO(pedge): this is poorly named and ugly
     INDEX_KEY = "index"
 
-    def transact
-      db.transact do |tr|
-        yield tr
-      end
-    end
-
-    def get_in_transaction(key, tr)
+    def get_in_transaction(tr, key)
       logger.debug("getting range #{key.range.inspect}")
       tr.get_range(*key.range)
     end
 
-    def set_in_transaction(key, value, tr)
+    def set_in_transaction(tr, key, value)
       logger.debug("setting key #{key.pack.inspect}")
       tr.set(key.pack, value)
     end
 
-    def set_many_in_transaction(key_to_value, tr)
+    def set_many_in_transaction(tr, key_to_value)
       key_to_value.each do |key, value|
-        set_in_transaction(key, value, tr)
+        set_in_transaction(tr, key, value)
       end
     end
 
-    def delete_in_transaction(key, tr)
+    def delete_in_transaction(tr, key)
       logger.debug("clearing range #{key.range.inspect}")
       tr.clear_range(*key.range)
     end
 
-    def delete_many_in_transaction(keys, tr)
+    def delete_many_in_transaction(tr, keys)
       keys.each do |key|
-        delete_in_transaction(key, tr)
+        delete_in_transaction(tr, key)
       end
     end
 
