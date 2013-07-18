@@ -14,7 +14,6 @@ module FDBObject
     def initialize(namespace, serializer, log_level = Logger::INFO)
       @namespace = namespace
       @serializer = serializer
-      @postfix_provider = PostfixProvider.new(max_postfix_size)
       @logger = Logger.new(STDOUT)
       @logger.level = log_level
     end
