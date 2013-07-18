@@ -95,7 +95,7 @@ module FDBObject
     # TODO(pedge): note that this has a total limit of 10MB but errors are only thrown
     # if an individual object is >10MB
     # TODO(pedge): merge set into a set_many call? uses more memory
-    def set_many(db_to_tr, key_to_object)
+    def set_many(db_or_tr, key_to_object)
       # TODO(pedge): standardized parameter checking
       raise ArgumentError.new unless key_to_object
       key_to_object.each do |key, object|
