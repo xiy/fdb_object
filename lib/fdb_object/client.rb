@@ -217,7 +217,7 @@ module FDBObject
       serialized_object = serializer.serialize(object)
       object_size_bytes = serialized_object.bytesize
       if object_size_bytes > max_object_size_bytes
-        raise FDBObjectError.new(OBJECT_TOO_LARGE, "object has byte size of #{object_size_bytes} which is over max byte size of #{max_object_size_bytes}")
+        raise FDBObjectError.new(FDBObjectError::OBJECT_TOO_LARGE, "object has byte size of #{object_size_bytes} which is over max byte size of #{max_object_size_bytes}")
       end
 
       serialized_object_buf = StringIO.new(serialized_object).set_encoding(Encoding::BINARY)
