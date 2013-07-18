@@ -211,11 +211,10 @@ module FDBObject
     end
 
     def key_to_sub_serialized_object(key, object)
-      sub_serialized_objects = sub_serialized_objects(object)
-      postfixes = postfix_provider.get(sub_serialized_objects.size)
       index = 0
-      sub_serialized_objects.inject(Hash.new) do |hash, sub_serialized_object|
-        hash[object_key(object.class, key, postfixes[index])] = sub_serialized_object
+      sub_serialized_objects(object).inject(Hash.new) do |hash, sub_serialized_object|
+        # takes advantage of tuple coding of integers
+        hash[object_key(object.class, key, index)] = sub_serialized_object
         index += 1
         hash
       end
@@ -251,44 +250,6 @@ module FDBObject
       size_f = MAX_TRANSACTION_SIZE_BYTES.to_f / MAX_VALUE_SIZE_BYTES.to_f
       size_i = size_f.to_i
       size_f == size_i ? size_i : size_i + 1
-    end
-
-    class PostfixProvider
-
-      def initialize(max_expected_size)
-        @cache = Hash.new
-        1.upto(postfix_length_for_size(max_expected_size)) do |postfix_length|
-          get_for_postfix_length(postfix_length)
-        end
-      end
-
-      # note that this may return more postfixes than size
-      # slicing an array copies it, this is undesirable
-      # TODO(pedge): is there a standard ruby array slicer that is either read-only or copy-on-write?
-      def get(size)
-        get_for_postfix_length(postfix_length_for_size(size))
-      end
-
-      private
-
-      attr_reader :cache
-
-      def get_for_postfix_length(postfix_length)
-        cache[postfix_length] ||= postfixes_for_length(postfix_length)
-        cache[postfix_length]
-      end
-      
-      def postfixes_for_length(postfix_length)
-        (('a' * postfix_length)..('z' * postfix_length)).to_a.freeze
-      end
-
-      def postfix_length_for_size(size)
-        # TODO(pedge): there has to be some standard way to do this in ruby
-        return 1 if size == 1
-        log_f = Math.log(size, 26)
-        log_i = log_f.to_i
-        log_f == log_i ? log_i : log_i + 1
-      end
     end
 
     class Key
