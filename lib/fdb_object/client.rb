@@ -46,19 +46,32 @@ module FDBObject
         hash
       end
 
-      # map key to sub_serialized_objects
+      # map key to key_values
+      # 
+      # do this before extracting values to issue all get_range calls
+      # before performing any operations on the KeyValue objects to
+      # take advantage of potential parallelism
+      # 
+      # re-use existing hash so that we don't allocate more memory
       db_or_tr.transact do |tr|
         keys.each do |key|
-          values = values(get_in_transaction(tr, key_hash[key]))
-          if values
-            key_hash[key] = values
-          else
-            key_hash.delete(key)
-          end
+          key_hash[key] = get_in_transaction(tr, key_hash[key])
+        end
+      end
+
+      # map key to values
+      # re-use existing hash so that we don't allocate more memory
+      keys.each do |key|
+        values = values(key_hash[key])
+        if values
+          key_hash[key] = values
+        else
+          key_hash.delete(key)
         end
       end
       
       # map key to object
+      # re-use existing hash so that we don't allocate more memory
       keys.each do |key|
         key_hash[key] = deserialize_sub_serialized_object(object_class, key_hash[key])
       end
