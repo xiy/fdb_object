@@ -38,7 +38,8 @@ module FDBObject
       keys.each { |key| raise ArgumentError.new unless key && !key.empty? }
       raise ArgumentError.new unless object_class
 
-      keys.uniq!
+      # TODO(pedge): does this make a copy of keys if keys already has only unique values?
+      keys = keys.uniq
 
       # map key to object_key
       key_hash = keys.inject(Hash.new) do |hash, key|
@@ -128,7 +129,8 @@ module FDBObject
       keys.each { |key| raise ArgumentError.new unless key && !key.empty? }
       raise ArgumentError.new unless object_class
 
-      keys.uniq!
+      # TODO(pedge): does this make a copy of keys if keys already has only unique values?
+      keys = keys.uniq
 
       object_index_keys = keys.map { |key| object_index_key(object_class, key) }
       object_keys = keys.map { |key| object_key(object_class, key) }
