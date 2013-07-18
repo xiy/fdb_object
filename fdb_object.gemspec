@@ -19,6 +19,12 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
 
   gem.add_dependency "fdb"
+  gem.add_dependency "multi_json"
+  if RUBY_PLATFORM =~ /java/
+    gem.add_dependency 'msgpack-jruby'
+  else
+    gem.add_dependency 'msgpack'
+  end
 
   #gem.add_development_dependency "rspec"
   #gem.add_development_dependency "simplecov"
