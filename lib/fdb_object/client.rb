@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 # Author: peter@centzy.com (Peter Edge)
 
+require 'logger'
 require 'fdb'
 
 # TODO(pedge): indirection needed to eliminate 10MB limit
@@ -10,11 +11,13 @@ module FDBObject
   class Client
 
     # namespace is similar to a bucket
-    def initialize(namespace, serializer)
+    def initialize(namespace, serializer, log_level = Logger::INFO)
       @namespace = namespace
       @serializer = serializer
       @postfix_provider = PostfixProvider.new(max_postfix_size)
-      @db = FDB.open
+      @db = ::FDB.open
+      @logger = Logger.new(STDOUT)
+      @logger.level = log_level
     end
 
     def get(key, object_class)
@@ -22,7 +25,7 @@ module FDBObject
       raise ArgumentError.new unless key && !key.empty?
       raise ArgumentError.new unless object_class
 
-      object_key = object_key(key, object_class)
+      object_key = object_key(object_class, key)
       values = values(transact { |tr| get_in_transaction(object_key, tr) })
       !values ? nil : deserialize_sub_serialized_objects(object_class, values)
     end
@@ -39,7 +42,7 @@ module FDBObject
 
       # map key to object_key
       key_hash = keys.inject(Hash.new) do |hash, key|
-        hash[key] = object_key(key, object_class)
+        hash[key] = object_key(object_class, key)
         hash
       end
 
@@ -68,7 +71,7 @@ module FDBObject
       raise ArgumentError.new unless key
       raise ArgumentError.new unless object
 
-      object_index_key = object_index_key(key, object.class)
+      object_index_key = object_index_key(object.class, key)
       key_to_sub_serialized_object = key_to_sub_serialized_object(key, object)
       transact do |tr|
         set_in_transaction(object_index_key, key, tr)
@@ -89,7 +92,7 @@ module FDBObject
       end
 
       object_index_key_to_key = key_to_object.inject(Hash.new) do |hash, (key, object)|
-        hash[object_index_key(key, object.class)] = key
+        hash[object_index_key(object.class, key)] = key
         hash
       end
       # as long as keys are unique, key_to_sub_serialized_objet should return unique keys
@@ -145,7 +148,7 @@ module FDBObject
 
     private
 
-    attr_reader :namespace, :serializer, :postfix_provider, :db
+    attr_reader :namespace, :serializer, :postfix_provider, :db, :logger
 
     # TODO(pedge): benchmark various value sizes (max is 100000)
     MAX_VALUE_SIZE_BYTES = 65536
@@ -161,10 +164,12 @@ module FDBObject
     end
 
     def get_in_transaction(key, tr)
+      logger.debug("getting range #{key.range.inspect}")
       tr.get_range(*key.range)
     end
 
     def set_in_transaction(key, value, tr)
+      logger.debug("setting key #{key.pack.inspect}")
       tr.set(key.pack, value)
     end
 
@@ -175,6 +180,7 @@ module FDBObject
     end
 
     def delete_in_transaction(key, tr)
+      logger.debug("clearing range #{key.range.inspect}")
       tr.clear_range(*key.range)
     end
 
@@ -198,10 +204,10 @@ module FDBObject
 
     def key_to_sub_serialized_object(key, object)
       sub_serialized_objects = sub_serialized_objects(object)
-      postfixes = PostfixProvider.get(sub_serialized_objects.size)
+      postfixes = postfix_provider.get(sub_serialized_objects.size)
       index = 0
       sub_serialized_objects.inject(Hash.new) do |hash, sub_serialized_object|
-        hash[object_sub_key(key, object.class, postfixes[index])] = sub_serialized_object
+        hash[object_key(object.class, key, postfixes[index])] = sub_serialized_object
         index += 1
         hash
       end
@@ -270,6 +276,7 @@ module FDBObject
 
       def postfix_length_for_size(size)
         # TODO(pedge): there has to be some standard way to do this in ruby
+        return 1 if size == 1
         log_f = Math.log(size, 26)
         log_i = log_f.to_i
         log_f == log_i ? log_i : log_i + 1
