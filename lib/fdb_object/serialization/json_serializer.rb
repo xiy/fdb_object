@@ -6,7 +6,7 @@ require 'multi_json'
 module FDBObject
   class JsonSerializer < Serializer
 
-    def object_id
+    def id
       "ruby_multi_json"
     end
 

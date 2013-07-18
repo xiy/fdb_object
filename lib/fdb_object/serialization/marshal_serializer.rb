@@ -4,7 +4,7 @@
 module FDBObject
   class MarshalSerializer < Serializer
 
-    def object_id
+    def id
       "ruby_marshal"
     end
 

@@ -6,7 +6,7 @@ require 'msgpack'
 module FDBObject
   class MessagePackSerializer < Serializer
 
-    def object_id
+    def id
       "ruby_message_pack"
     end
 

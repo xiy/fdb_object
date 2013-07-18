@@ -6,7 +6,7 @@ require 'yaml'
 module FDBObject
   class YamlSerializer < Serializer
 
-    def object_id
+    def id
       "ruby_yaml"
     end
 

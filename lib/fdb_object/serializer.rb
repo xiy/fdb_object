@@ -4,7 +4,9 @@
 module FDBObject
   class Serializer
 
-    def object_id
+    # identify the type of serialization with a string
+    # this will be used as part of the key for the object to identify the serialization type
+    def id
       raise NotImplementedError.new
     end
 
@@ -16,6 +18,8 @@ module FDBObject
       raise NotImplementedError.new
     end
 
+    # return a name for the object class
+    # this is used instead of object_class.name for language-independent serializers
     def object_class_name(object_class)
       raise NotImplementedError.new
     end
