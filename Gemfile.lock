@@ -1,9 +1,8 @@
 PATH
   remote: .
   specs:
-    fdb_object (0.0.1)
+    fdb_object (0.0.2)
       fdb
-      msgpack
       multi_json
 
 GEM
@@ -12,7 +11,6 @@ GEM
     fdb (0.2.2.5)
       ffi (>= 1.1.5)
     ffi (1.9.0)
-    msgpack (0.5.5)
     multi_json (1.7.7)
 
 PLATFORMS

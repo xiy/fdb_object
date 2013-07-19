@@ -6,7 +6,6 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 require 'fdb'
 
-require 'msgpack'
 require 'multi_json'
 require 'yaml'
 
@@ -14,7 +13,6 @@ require 'fdb_object/client'
 require 'fdb_object/serializer'
 require 'fdb_object/serialization/json_serializer'
 require 'fdb_object/serialization/marshal_serializer'
-require 'fdb_object/serialization/message_pack_serializer'
 require 'fdb_object/serialization/yaml_serializer'
 require 'fdb_object/version'
 
