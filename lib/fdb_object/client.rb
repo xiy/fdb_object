@@ -147,7 +147,7 @@ module FDBObject
       object_keys = keys.map { |key| object_key(object_class, key) }
       db_or_tr.transact do |tr|
         delete_many_in_transaction(tr, object_index_keys)
-        delete_many_in_trsnaction(object_keys, tr)
+        delete_many_in_transaction(tr, object_keys)
       end
     end
 
